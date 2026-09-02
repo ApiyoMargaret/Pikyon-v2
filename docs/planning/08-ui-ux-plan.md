@@ -1,123 +1,329 @@
-# Section 8: UI/UX Plan
+# Section 8: UI/UX Plan (Rewritten based on real design references)
 
-## 8.1 Design System
 
-```
-Typography:   Inter (all weights) — no serif, ADR-015
-Icons:        Lucide (via shadcn)
-Components:   shadcn/ui on Tailwind CSS — ADR-014
-Palette:      Neutral slate grays, high-contrast text
-              bg: neutral-50 (light) / neutral-950 (dark)
-              borders: neutral-200 / neutral-800
-              One accent color for primary actions only
-              (amber #D4956A, used sparingly, not as a dominant theme)
-Elevation:    Subtle borders preferred over drop shadows
-Motion:       Framer Motion, 0.15–0.3s, purposeful only, never decorative
-```
-
-> **Design direction changelog**: earlier exploratory mockups (dark-cinematic-amber palette, then an archival/contact-sheet concept) were rejected as reading generic/AI-templated. Benchmarked instead against Ente Photos, Linear, and Notion — settled on a neutral, high-contrast, restrained system with a single sparing accent color. Full production visual fidelity to be built as real React/Tailwind components, not chat-tool mockups.
-
-## 8.2 Page Inventory
-
-Homepage, Login, Register, Verify Email, Forgot/Reset Password, Dashboard, Memory Detail (Reader View), Create/Edit Memory, Timeline, Search Results, Shared Memory, Profile/Settings, Trash, Notifications.
-
-## 8.3 Homepage Structure
+## 8.1 Design System Revised
 
 ```
-1. Nav — sticky, minimal: logo, Features/Privacy/Pricing, Sign In CTA
-2. Hero — benefit headline + subtext + dual CTA, REAL browser-framed
-   dashboard screenshot below (not abstract art — this literally
-   cannot be finalized until the dashboard UI exists)
-3. Feature sections — 3 alternating full-width (text one side,
-   UI preview the other):
-     Private Storage & Signed URLs
-     AI Story & Speech Polish
-     PIN Locks & Recipient Sharing
-4. Comparison table — Generic Cloud Storage vs Pikyon
-5. Trust & Security — 3-card grid:
-     Zero Public Buckets (5-min signed URLs only)
-     Scoped Access Control (per-memory PIN — corrected from an
-       earlier draft that mistakenly listed "Local Encryption",
-       which isn't part of our actual architecture)
-     Strict Data Isolation (Postgres RLS)
+Two deliberate modes by CONTEXT, not a user-facing toggle:
+
+  Marketing site (Homepage, Login, Register, public pages):
+    LIGHT mode — white/cream backgrounds, dark navy text
+
+  Authenticated app (Dashboard, Memory flip-card, Create/Edit,
+  Settings, all post-login screens):
+    DARK mode — near-black background, purple/indigo accents
+
+Primary accent color (both modes): purple/indigo, ~#5B3FF5
+  — REPLACES the earlier amber (#D4956A) direction entirely.
+
+Typography: Inter only (ADR-015, unchanged) — bold/black
+  weights for headlines, regular/medium for body and UI.
+
+Components: shadcn/ui (ADR-014, unchanged).
+
+Shape language: heavily rounded — pill-shaped buttons and nav,
+  rounded-corner cards, soft drop shadows on light-mode cards.
+  This is a shift from the earlier "subtle borders over shadows"
+  direction — shadows are used deliberately here for a softer,
+  warmer feel consistent with the real references.
+
+Photography: REAL photography is now core to the visual identity
+  (hero, login backdrop, footer illustration) — not abstract
+  gradients or geometric placeholders as earlier drafts used.
+```
+
+## 8.2 Page Inventory — Revised
+
+```
+MARKETING (light mode):
+  Homepage, Login, Register, Verify Email, Forgot/Reset Password
+
+AUTHENTICATED APP (dark mode):
+  Dashboard (calendar-card grid — see 8.5)
+  Create/Edit Memory (compose flow — see 8.6)
+  Timeline, Search Results, Shared Memory, Profile/Settings,
+  Trash, Notifications
+
+RETIRED:
+  MemoryDetailPage as a separate route no longer exists — the
+  dashboard's flip-card interaction (8.5) fully replaces it.
+  This is a genuine structural simplification: one surface for
+  viewing a complete memory instead of a card-then-detail-page
+  handoff. (File structure note: frontend/src/pages/
+  MemoryDetailPage.tsx should be removed from the scaffold or
+  repurposed into the flip-card component itself.)
+```
+
+## 8.3 Homepage Structure — Revised
+
+```
+1. NAV — floating pill-shaped nav, not a full-width sticky bar.
+   Logo mark (left) + 4 links (Features, Security, plus items
+   TBD per real Pikyon scope) + solid "Go to App" pill button
+   (right). White/light pill floating over the page background.
+
+2. HERO — symmetrical layout:
+   - Real photography flanking the headline on both left and
+     right (people, warm/candid, not stock-generic)
+   - Two-tone bold headline: dark navy line + purple-accent line
+     (e.g. dark: "Every memory," accent: "properly preserved")
+   - One-line subheading — MUST reflect Pikyon's real value prop
+     (story-first, private, AI-enriched) — NOT "end-to-end
+     encrypted, cross-platform, open-source" (that copy belongs
+     to the reference app, not Pikyon — see architecture note
+     below)
+   - Dual CTA: solid dark "Sign up" pill + light-purple ghost
+     "Login" pill, side by side
+   - Row of 4 rounded, slightly-rotated photo cards beneath the
+     CTA row
+
+   ARCHITECTURE ALIGNMENT NOTE: subheading copy must not claim
+   "end-to-end encrypted" — Pikyon's actual security model is
+   RLS + 5-minute pre-signed URLs + optional PIN lock (see
+   07-security-plan.md). Accurate subheading language: something
+   like "Private by default. AI-enriched. Yours to share, on
+   your terms."
+
+3. FEATURE CAROUSEL — a curved, semi-circular 3D carousel of
+   photo-backed feature cards that rotates continuously and
+   pauses when a card is centered/facing the user, giving time
+   to read. This REPLACES the earlier "3 alternating full-width
+   sections" plan entirely — genuinely more distinctive.
+
+   Implementation note: real 3D transform carousel (CSS
+   transform-style: preserve-3d + rotateY on a circular track,
+   or Framer Motion useAnimationFrame loop / a library like
+   Swiper's 3D coverflow). This is non-trivial and should be
+   scheduled as a dedicated Sprint 7 (Polish) task, not assumed
+   as page-scaffolding-level effort in Sprint 1-2.
+
+   Card content — Pikyon's REAL features, not the reference
+   app's claims:
+     Story-First Writing    — AI-assisted or fully your own words
+     AI Enrichment           — captions, mood, tags on demand
+     PIN-Locked Memories     — a second lock, independent of login
+     Controlled Sharing      — email-based, revocable, expiring
+     Secure Streaming        — 5-minute signed URLs, never public
+
+4. SOCIAL PROOF — the hanging-tag-card visual mechanic (cards
+   suspended from a rope/bar, alternating purple/light-blue,
+   star rating + avatar + handle) is a genuinely strong pattern
+   — KEEP the mechanic.
+
+   Cards animate with a subtle swing/sway (Framer Motion,
+   small rotate oscillation e.g. [-2deg, 2deg], spring easing,
+   staggered per card so they don't move in unison — either an
+   idle continuous sway or a settle-after-scroll-into-view swing).
+
+   CONTENT NOTE (unchanged from earlier review): do NOT
+   populate with fabricated testimonials/user counts — Pikyon
+   has no real users at MVP launch. Recommended alternative:
+   a founder's note section using this same visual mechanic
+   ("Why I built this"), or omit until real testimonials exist
+   post-launch. See 8.8 open questions.
+
+5. TRUST & SECURITY — 3-card grid, content must stay accurate
+   to our real architecture:
+     Zero Public Buckets      (5-min signed URLs only)
+     Scoped Access Control    (per-memory PIN)
+     Strict Data Isolation    (Postgres RLS)
+
 6. FAQ — real objections, no fabricated content
-7. Final CTA banner
-8. Footer — multi-column: Product / Security / Legal / Copyright
+
+7. FINAL CTA banner
+
+8. FOOTER — solid purple/indigo block (not white, contrast
+   with the rest of the light-mode page), white card floating
+   inside it with a friendly illustrated icon at top-center.
+   Column structure TRIMMED to match what Pikyon actually has
+   at launch (the reference's "Open Source" and "Compare vs
+   Google Photos/iCloud/Dropbox" columns don't apply — Pikyon
+   is not open source and has no competitor-comparison content
+   planned):
+     Product    - Features, Security, Pricing
+     Company    - About, Contact
+     Legal      - Privacy, Terms
+     Support    - Help, Articles
+   Social icons + language selector + copyright row at the
+   bottom, matching the reference's bottom bar pattern.
 ```
 
-## 8.4 Dashboard Structure
+## 8.4 Login / Register — Revised
 
 ```
-Sidebar (collapsible): Library, Timeline, Private, PIN Locked,
-  Shared, Trash, storage meter pinned at bottom
-Top bar: wide centered search with inline filter tags
-  (type:image, mood:joyful, after:2026-01-01 — maps directly to
-  the query params in 06-api-design.md §6.10), Upload button, avatar
-Grid: sticky date headers ("July 2026"), uniform 4-column
-  responsive grid — NOT masonry (reconsidered: real photo apps
-  use consistent grids because they scan faster than variable
-  heights)
-Card: hover → top-left checkbox (multi-select), bottom-left media
-  type badge, lock icon if PIN-protected
-Selection bar: floating top bar on selection — Share, Add to PIN
-  Vault, Delete, Deselect
-Upload feedback: floating bottom-right progress drawer (Google
-  Drive/Photos pattern) — itemized per-file progress, Supabase
-  completion status, retry on error. Needed because our upload
-  architecture is direct-to-Supabase via pre-signed URLs
-  (06-api-design.md §6.7), so per-file state must be tracked
-  client-side.
+Card-over-photo-collage pattern (not a solid neutral background
+as originally specced — that earlier "avoid photo backdrops,
+they read as dated 2018 SaaS" guidance is REVISED: the deciding
+factor is execution quality, not the concept itself. A soft,
+scattered polaroid-style photo collage behind a clean, minimal
+white card works well and stays thematically tied to "photos" -
+it does not read as dated when done this way).
+
+Structure:
+  - Scattered, slightly-rotated real photos as a soft background
+    collage (light mode, low visual noise so the card stays the
+    clear focal point)
+  - Centered white card, rounded corners, soft shadow
+  - "Welcome back" headline + "Sign in to continue your story"
+    subtext (subtext phrasing intentionally ties to Pikyon's
+    story-first identity)
+  - Google OAuth button FIRST, above the divider (revised order
+    — originally specced as a secondary option below email/pass)
+  - "OR" divider
+  - Email field, Password field — inline labels ABOVE each input
+    (revised from floating-label pattern originally specced)
+  - Solid purple "Sign in" pill button, full-width
+  - Footer link: "New here? Create one" (register), or the
+    reverse phrasing on the Register screen
 ```
 
-## 8.5 Memory Detail (Reader View)
+## 8.5 Dashboard — Fully Revised (Calendar-Card Flip System)
+
+This is the single biggest structural change from the original plan. The masonry/uniform-grid photo-thumbnail dashboard is REPLACED entirely by a torn-calendar-page card metaphor.
 
 ```
-Desktop: two-column modal, 65/35 split
-  Left  (65%): media viewport — carousel/waveform/video,
-                object-fit: contain
-  Right (35%): title, date, location, AI mood/tag badges,
-                PIN-lock status, shared recipient avatars,
-                full story text
-Mobile: stacked, media on top, story panel below
+LAYOUT (dark mode):
+  Sidebar (left, dark, ~220px):
+    Logo mark + wordmark (top)
+    Solid purple "Upload" pill button
+    Nav: Private, Public, Shared, Trash
+      (Reference showed "Photos / Albums / Favorites" — Albums
+      and Favorites are NOT in Pikyon's MVP scope per
+      02-features-scope.md, replaced here with Pikyon's real
+      sections. See 8.8 open question if Albums/Favorites are
+      wanted as new features instead.)
+    Storage meter (bottom): percentage bar + "X GB of Y GB used"
+      — maps directly to GET /users/me/storage response shape
+      (06-api-design.md 6.5), real data, not mockup
+    Settings (bottom, separated)
+
+  Top bar:
+    Wide search input with Pikyon's real inline filter-tag
+      syntax (type:image, mood:joyful, after:2026-01-01 — per
+      06-api-design.md 6.10 query params), not plain-text-only
+      search as shown in the reference
+    Notification bell (with unread dot)
+    User avatar + name + dropdown
+
+  Main content:
+    "Your Memories" heading
+    Grid/List view toggle + sort dropdown (top-right)
+    Sticky month headers ("October 2026")
+    Grid of CALENDAR CARDS, chronological, grouped by month
+
+CALENDAR CARD (front face — memory NOT yet flipped):
+  Torn-notepad-page visual: spiral binding illustration at top,
+  month abbreviation ("OCT") in small caps, large bold day
+  number, memory title below, small torn-paper texture at the
+  bottom edge of the card.
+
+  ADDITIONS beyond the reference (Pikyon-specific, since these
+  differentiators weren't shown in the original mock):
+    - Small AI mood/tag indicator (colored dot or tiny chip)
+      near the title, surfacing AI enrichment on the main grid
+      view, not hidden until the card is opened
+    - Lock icon overlay + darkened/blurred card treatment for
+      PIN-locked memories — this state must exist even though
+      the reference didn't show it, since PIN lock is a core
+      Pikyon feature (02-features-scope.md 2.6)
+    - Public/Private badge, small, consistent with the badge
+      language used elsewhere in the app
+
+CARD INTERACTION — flip reveals the FULL memory (no separate
+detail page/route, per explicit product decision):
+  1. User clicks a card
+  2. Flip animation plays (Framer Motion 3D flip, ~400-600ms)
+  3a. IF unlocked/public: back face reveals the complete memory
+      — media (streamed via a freshly-fetched 5-minute signed
+      URL, requested on click, not prefetched for all visible
+      cards — one memory viewed at a time keeps this consistent
+      with the zero-direct-serving media architecture in
+      04-system-architecture.md 4.5), full story text, AI mood/
+      tag badges, all on that single back face — this literally
+      is the memory detail view, not a link to one
+  3b. IF PIN-locked: back face shows a PIN entry prompt INSTEAD
+      of memory content. Correct PIN submitted -> content swaps
+      into that same back face (no second flip, no separate
+      modal taking over the screen). Incorrect PIN -> inline
+      error, same as the PINInput component already specced.
+  4. Timing note: the flip animation (fixed duration) and the
+     signed-URL fetch (network-dependent duration) are two
+     separate timers. If the fetch hasn't resolved by the time
+     the flip completes, the back face shows a brief shimmer/
+     loading state rather than a blank or broken card.
+
+  Click again / close button -> flips back to the grid.
 ```
-> Revised from an earlier vaguer "full-screen takeover" note into this specific two-column spec.
 
-## 8.6 Create/Edit Memory
-Story field offers two clearly visible, non-forced paths at all times:
-```
-[ Write it myself ]     [ Use AI assistance ]
-```
-AI assistance sub-paths: caption-from-media, speech-to-text (summarize or polish). User always reviews/edits before saving — nothing auto-saves from AI output.
-
-## 8.7 Authentication Screen
+## 8.6 Create/Edit Memory — Unchanged in Concept, Reconfirmed as a Distinct Stage
 
 ```
-Centered card, ~400px, solid neutral background (no photo backdrop —
-  reconsidered from an earlier split-screen-with-photo pattern,
-  which reads as a dated 2018-era SaaS template)
-Logo top-center → "Welcome back" → subtext
-Primary: Google OAuth single-click button
-Divider: "or continue with email"
-Email + password (floating labels), "Forgot password?" right-aligned
-Submit button, footer link "Don't have an account? Sign up"
+This is explicitly a SEPARATE lifecycle stage from viewing —
+confirmed during design review: the calendar-card/flip system
+in 8.5 only applies to memories that are ALREADY complete
+(uploaded, story written, saved). A freshly-started memory
+(upload in progress, description not yet written) lives in its
+own compose flow and is NOT represented as a calendar card until
+it's finished and saved.
+
+Compose flow (dark mode, consistent with the rest of the
+authenticated app):
+  Story field offers two clearly visible, non-forced paths:
+    [ Write it myself ]     [ Use AI assistance ]
+  AI assistance sub-paths: caption-from-media, speech-to-text
+  (summarize or polish). User always reviews/edits before saving
+  — nothing auto-saves from AI output (unchanged from original
+  plan, 02-features-scope.md 2.4).
+
+  Media upload, tags, visibility toggle, PIN-lock toggle — same
+  fields as originally specced, now styled to match the dark
+  authenticated-app system rather than the earlier neutral plan.
+
+  Upload progress: floating bottom-right progress drawer
+  (Google Drive/Photos pattern, unchanged from original plan)
+  — still necessary given the direct-to-Supabase pre-signed
+  upload architecture (04-system-architecture.md 4.5).
+
+  On save/completion -> memory becomes a calendar card, appears
+  in the dashboard grid under its correct month group.
 ```
 
-## 8.8 Search Bar Behavior
-Inline filter-tag syntax (`type:image`, `mood:joyful`, `after:2026-01-01`) or a quick filter-pill dropdown — must match the exact query parameters defined in the backend API spec, not a separate ad-hoc filter vocabulary.
+## 8.7 Search Bar Behavior — Unchanged
+Inline filter-tag syntax (type:image, mood:joyful,
+after:2026-01-01) or a quick filter-pill dropdown, matching
+06-api-design.md 6.10 query params exactly. Confirmed still
+wanted — the reference dashboard's plain search bar does not
+reflect this; Pikyon's implementation should still include it.
 
-## 8.9 Stack Additions
+## 8.8 Open Questions Requiring a Product Decision
 
 ```
-ADR-014: shadcn/ui — free, MIT licensed, component source copied
-  into frontend/src/components/ui/, styled per-project, no runtime
-  dependency cost.
+1. Sidebar nav in the reference showed "Albums" and "Favorites",
+   not in Pikyon's current MVP scope (02-features-scope.md).
+   Resolved for now by using Pikyon's real sections (Private /
+   Public / Shared / Trash) instead — revisit if Albums/
+   Favorites should be added as new MVP features.
 
-ADR-015: Inter-only typography — replaces an earlier Playfair
-  Display + DM Mono "editorial memoir" direction, which conflicted
-  with the neutral-SaaS benchmark (Ente/Linear) once the homepage
-  brief was finalized. Two typography personalities can't coexist
-  across the same app.
+2. Feature carousel (8.3.3) is a non-trivial 3D component —
+   confirmed acceptable to schedule as a dedicated Sprint 7
+   task rather than expected in early sprint page scaffolding.
+
+3. Social proof section (8.3.4) — direction still open: omit
+   until real users exist, or replace with a founder's-note
+   version of the same visual mechanic for launch.
 ```
 
-## 8.10 Design Process Note
-Chat-based inline mockup tools (both the internal sketch widget and a hand-built HTML preview) were used for early exploration but consistently fell short of production visual quality. **Final visual design will be built as real React + Tailwind + shadcn components during implementation, not as static previews** — the dashboard and memory detail screens should be treated as living UI from Sprint 1 onward, refined in place rather than mocked separately first.
+## 8.9 Design Changelog (This Revision)
+
+| Area | Original Plan | Revised Plan | Reason |
+|---|---|---|---|
+| Color system | Neutral slate, amber accent, single mode | Purple/indigo accent, TWO modes (light marketing / dark app) | Real design references provided, direct visual match required |
+| Dashboard layout | Uniform 4-column grid, no masonry, separate detail page | Calendar-card grid with flip-to-reveal interaction, no separate detail page | Stronger, more thematic visual metaphor; explicit product decision to fold detail view into the flip |
+| Hero visual | Browser-framed dashboard screenshot | Real photography flanking headline + photo card row | Matches provided references; more emotional, still product-honest |
+| Feature section | 3 alternating full-width text+screenshot sections | Curved 3D rotating carousel, pause-on-center | Provided reference is more distinctive; flagged as non-trivial build effort |
+| Social proof | Not originally planned as a section | Hanging-tag-card mechanic, content TBD (real testimonials vs founder's note) | Provided reference; fabricated content explicitly rejected per project's honesty standard |
+| Login backdrop | "No photo backdrop, dated pattern" (explicit original guidance) | Photo-collage backdrop behind a minimal card — GUIDANCE REVERSED | Execution quality, not the concept, was the actual problem with earlier attempts |
+| Login OAuth position | Below email/password fields | Above, first option before the divider | Matches provided reference |
+| Footer | 4-column (Product/Security/Legal/Copyright) | 4-column, renamed/trimmed from a 6-column reference that included Open Source and Compare columns not applicable to Pikyon | Reference footer assumed a more mature, open-source, competitor-comparison product than Pikyon's actual MVP |
+| Typography | Inter only (ADR-015) | Unchanged | Already correct, no conflict with new references |
+| Component library | shadcn/ui (ADR-014) | Unchanged | Already correct, no conflict with new references |
