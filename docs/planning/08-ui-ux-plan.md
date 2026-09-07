@@ -1,7 +1,7 @@
-# Section 8: UI/UX Plan (Rewritten based on real design references)
+# Section 8: UI/UX Plan (Rewritten — based on real design references)
 
 
-## 8.1 Design System Revised
+## 8.1 Design System: Revised
 
 ```
 Two deliberate modes by CONTEXT, not a user-facing toggle:
@@ -105,22 +105,29 @@ RETIRED:
      Controlled Sharing      — email-based, revocable, expiring
      Secure Streaming        — 5-minute signed URLs, never public
 
-4. SOCIAL PROOF — the hanging-tag-card visual mechanic (cards
-   suspended from a rope/bar, alternating purple/light-blue,
-   star rating + avatar + handle) is a genuinely strong pattern
-   — KEEP the mechanic.
+4. SOCIAL PROOF — DECIDED: keep this section live from launch,
+   using the hanging-tag-card visual mechanic (cards suspended
+   from a rope/bar, alternating purple/light-blue), but as a
+   FOUNDER'S NOTE, not fabricated testimonials.
+
+   Content: real, honest cards written in the founder's own
+   voice — e.g. "Why I built this," a note on the story-first
+   philosophy, a note on privacy-by-default — NOT invented user
+   names, photos, star ratings, or usage claims ("trusted by
+   500+ users" is explicitly rejected — untrue at launch and
+   misleading to visitors). Headline changes from "trusted by
+   over 500+ users" to something honest, e.g. "Why Pikyon exists"
+   or "A note from the person building this."
+
+   Individual cards get swapped for genuine user testimonials
+   organically as real ones come in post-launch — the mechanic
+   stays, the content evolves from founder-voice to user-voice
+   over time, never fabricated in either state.
 
    Cards animate with a subtle swing/sway (Framer Motion,
    small rotate oscillation e.g. [-2deg, 2deg], spring easing,
    staggered per card so they don't move in unison — either an
    idle continuous sway or a settle-after-scroll-into-view swing).
-
-   CONTENT NOTE (unchanged from earlier review): do NOT
-   populate with fabricated testimonials/user counts — Pikyon
-   has no real users at MVP launch. Recommended alternative:
-   a founder's note section using this same visual mechanic
-   ("Why I built this"), or omit until real testimonials exist
-   post-launch. See 8.8 open questions.
 
 5. TRUST & SECURITY — 3-card grid, content must stay accurate
    to our real architecture:
@@ -186,12 +193,14 @@ LAYOUT (dark mode):
   Sidebar (left, dark, ~220px):
     Logo mark + wordmark (top)
     Solid purple "Upload" pill button
-    Nav: Private, Public, Shared, Trash
-      (Reference showed "Photos / Albums / Favorites" — Albums
-      and Favorites are NOT in Pikyon's MVP scope per
-      02-features-scope.md, replaced here with Pikyon's real
-      sections. See 8.8 open question if Albums/Favorites are
-      wanted as new features instead.)
+    Nav: Private, Public, Shared, Favorites, Trash
+      (DECIDED: Favorites ADDED as a new lightweight MVP feature
+      — a single is_favorite boolean toggle per memory, no new
+      table needed. Albums is DEFERRED to a future sprint —
+      a real feature requiring its own schema (albums +
+      album_memories join table) and sharing implications,
+      too large to fold into scope without dedicated planning.
+      See schema/API additions below.)
     Storage meter (bottom): percentage bar + "X GB of Y GB used"
       — maps directly to GET /users/me/storage response shape
       (06-api-design.md 6.5), real data, not mockup
@@ -295,22 +304,30 @@ after:2026-01-01) or a quick filter-pill dropdown, matching
 wanted — the reference dashboard's plain search bar does not
 reflect this; Pikyon's implementation should still include it.
 
-## 8.8 Open Questions Requiring a Product Decision
+## 8.8 Product Decisions (Resolved)
 
 ```
-1. Sidebar nav in the reference showed "Albums" and "Favorites",
-   not in Pikyon's current MVP scope (02-features-scope.md).
-   Resolved for now by using Pikyon's real sections (Private /
-   Public / Shared / Trash) instead — revisit if Albums/
-   Favorites should be added as new MVP features.
+1. Favorites — ADDED to MVP scope. Requires:
+   - Schema: ALTER TABLE memories ADD COLUMN is_favorite BOOLEAN
+     NOT NULL DEFAULT FALSE; (05-database-design.md needs this
+     migration added — new migration file, sequential number
+     after the existing 10)
+   - API: PATCH /memories/:id already supports partial updates
+     (06-api-design.md 6.6) — is_favorite becomes a valid field
+     on that existing endpoint, no new endpoint required. Add a
+     GET /memories?favorite=true filter option for the Favorites
+     nav view.
+   - Albums — DEFERRED to a future sprint, out of MVP scope
+     (02-features-scope.md 2.11 future list). Not implemented,
+     not in the sidebar.
 
-2. Feature carousel (8.3.3) is a non-trivial 3D component —
-   confirmed acceptable to schedule as a dedicated Sprint 7
-   task rather than expected in early sprint page scaffolding.
+2. Feature carousel (8.3.3) — CONFIRMED scheduled as a dedicated
+   Sprint 7 (Polish) task, not expected in early sprint page
+   scaffolding.
 
-3. Social proof section (8.3.4) — direction still open: omit
-   until real users exist, or replace with a founder's-note
-   version of the same visual mechanic for launch.
+3. Social proof section (8.3.4) — CONFIRMED: stays live from
+   launch as a founder's-note version of the hanging-tag-card
+   mechanic. See 8.3.4 for full content direction.
 ```
 
 ## 8.9 Design Changelog (This Revision)
