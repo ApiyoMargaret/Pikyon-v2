@@ -117,6 +117,8 @@ POST   /memories/bulk-trash    ← added: batch move to trash, max 50 IDs
 
 > **Revised**: `GET /memories?status=trashed` was removed entirely to avoid redundancy with `GET /memories/trash`, which returns richer trash-specific fields (`permanent_delete_at`, `days_remaining`). `GET /memories` now always returns active memories only.
 
+> **Added post-planning-review**: `GET /memories?favorite=true` filter param, supporting the Favorites nav section (`08-ui-ux-plan.md` §8.8). No new endpoint needed — `PATCH /memories/:id` already supports partial updates, so `{ "is_favorite": true }` is a valid request body on the existing endpoint.
+
 ### POST /memories/bulk-trash
 ```json
 Request:  { "memory_ids": ["uuid-1", "uuid-2"] }  // max 50, atomic (any invalid ID rejects the whole batch)
