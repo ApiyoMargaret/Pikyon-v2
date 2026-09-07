@@ -1,4 +1,4 @@
-# Section 5: Database Design
+# Section 5: Database Design
 
 ## 5.1 Overview
 
@@ -95,6 +95,10 @@ CREATE TABLE memories (
     visibility           memory_visibility NOT NULL DEFAULT 'private',
     status               memory_status NOT NULL DEFAULT 'active',
     is_pin_locked        BOOLEAN NOT NULL DEFAULT FALSE,
+    is_favorite          BOOLEAN NOT NULL DEFAULT FALSE,
+    -- added post-planning-review: supports the Favorites nav
+    -- section (08-ui-ux-plan.md §8.8) — no new table needed,
+    -- a simple toggle on the existing memory record
     ai_caption           TEXT,
     ai_mood              TEXT,
     ai_tags              TEXT[],
