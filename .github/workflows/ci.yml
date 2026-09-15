@@ -39,9 +39,10 @@ jobs:
 
       - name: Verify Frontend Directory
         run: |
-          if [ -f "frontend/package.json" ]; then
+          if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
             cd frontend
             npm ci
           else
-            echo "Frontend package.json not found. Skipping Node checks."
+            echo "Frontend directory or package.json not initialized yet. Step passed."
+            exit 0
           fi
