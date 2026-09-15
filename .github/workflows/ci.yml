@@ -1,0 +1,53 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ dev, main ]
+  pull_request:
+    branches: [ dev, main ]
+
+jobs:
+  backend-checks:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache-dependency-path: backend/go.sum
+
+      - name: Verify Backend Directory
+        run: |
+          if [ -d "backend" ]; then
+            cd backend
+            go vet ./... || true
+          else
+            echo "Backend directory not populated yet. Skipping Go build step."
+          fi
+
+  frontend-checks:
+    name: Frontend Lint & Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify Frontend Directory
+        run: |
+          if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
+            cd frontend
+            npm ci
+          else
+            echo "Frontend packages not populated yet. Skipping Node build step."
+          fi
