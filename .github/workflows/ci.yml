@@ -19,15 +19,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-          cache-dependency-path: backend/go.sum
 
       - name: Verify Backend Directory
         run: |
-          if [ -d "backend" ]; then
+          if [ -d "backend" ] && [ -f "backend/go.mod" ]; then
             cd backend
             go vet ./... || true
           else
-            echo "Backend directory not populated yet. Skipping Go build step."
+            echo "Backend code module not initialized yet. Skipping Go build step."
           fi
 
   frontend-checks:
@@ -41,7 +40,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Verify Frontend Directory
         run: |
