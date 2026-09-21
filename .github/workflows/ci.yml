@@ -8,6 +8,7 @@ on:
 
 jobs:
   backend-checks:
+    name: Backend Build & Verification
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -16,18 +17,22 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.26'
 
-      - name: Check backend module
+      - name: Run Backend Quality & Test Pipeline
         run: |
-          if [ -f backend/go.mod ]; then
+          if [ -d "backend" ] && [ -f "backend/go.mod" ]; then
             cd backend
+            echo "--- Running govet ---"
             go vet ./...
+            echo "--- Running tests ---"
+            go test -v ./...
           else
-            echo "backend/go.mod not found, skipping backend checks."
+            echo "No backend module found at backend/go.mod. Skipping backend checks cleanly."
           fi
 
   frontend-checks:
+    name: Frontend Lint & Verification
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -36,13 +41,18 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
-      - name: Check frontend project
+      - name: Run Frontend Quality & Test Pipeline
         run: |
-          if [ -f frontend/package.json ]; then
+          if [ -d "frontend" ] && [ -f "frontend/package.json" ]; then
             cd frontend
+            echo "--- Installing dependencies ---"
             npm ci || npm install
+            echo "--- Running linter ---"
+            npm run lint --if-present
+            echo "--- Running tests ---"
+            npm test --if-present -- --watch=false
           else
-            echo "frontend/package.json not found, skipping frontend checks."
+            echo "No frontend package found at frontend/package.json. Skipping frontend checks cleanly."
           fi
