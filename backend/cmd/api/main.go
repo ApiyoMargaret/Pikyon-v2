@@ -20,7 +20,7 @@ func main() {
 	r := router.NewRouter()
 
 	fmt.Printf("Pikyon API Server starting on port %s...\n", port)
-	
+
 	// Start blocking HTTP server listener
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatalf("Server failed to start: %v", err)
