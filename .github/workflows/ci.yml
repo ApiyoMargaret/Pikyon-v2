@@ -16,13 +16,31 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.26'
 
-      - name: Check backend module
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run Backend Checks
         run: |
           if [ -f backend/go.mod ]; then
             cd backend
+            
+            echo "1. Checking code formatting..."
+            if [ -n "$(gofmt -l .)" ]; then
+              echo "The following files need formatting with gofmt:"
+              gofmt -l .
+              exit 1
+            fi
+
+            echo "2. Running go vet..."
             go vet ./...
+
+            echo "3. Running automated tests..."
+            go test -v ./...
+
+            echo "4. Running vulnerability scan..."
+            govulncheck ./...
           else
             echo "backend/go.mod not found, skipping backend checks."
           fi
@@ -36,13 +54,24 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
-      - name: Check frontend project
+      - name: Run Frontend Checks
         run: |
           if [ -f frontend/package.json ]; then
             cd frontend
+            
+            echo "1. Installing dependencies..."
             npm ci || npm install
+
+            echo "2. Running Linter..."
+            npm run lint --if-present
+
+            echo "3. Running Tests..."
+            npm test --if-present -- --watch=false
+
+            echo "4. Running Security Audit..."
+            npm audit --audit-level=high
           else
             echo "frontend/package.json not found, skipping frontend checks."
           fi
