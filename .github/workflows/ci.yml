@@ -1,0 +1,48 @@
+name: CI Workflow
+
+on:
+  push:
+    branches: [ dev, main ]
+  pull_request:
+    branches: [ dev, main ]
+
+jobs:
+  backend-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Check backend module
+        run: |
+          if [ -f backend/go.mod ]; then
+            cd backend
+            go vet ./...
+          else
+            echo "backend/go.mod not found, skipping backend checks."
+          fi
+
+  frontend-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check frontend project
+        run: |
+          if [ -f frontend/package.json ]; then
+            cd frontend
+            npm ci || npm install
+          else
+            echo "frontend/package.json not found, skipping frontend checks."
+          fi
