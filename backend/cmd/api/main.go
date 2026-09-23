@@ -1,28 +1,88 @@
 package main
 
 import (
-	"fmt"
-	"log"
+	"context"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
+	_ "github.com/ApiyoMargaret/Pikyon-v2/backend/docs"
+	"github.com/ApiyoMargaret/Pikyon-v2/backend/internal/db"
 	"github.com/ApiyoMargaret/Pikyon-v2/backend/internal/router"
+	"github.com/ApiyoMargaret/Pikyon-v2/backend/pkg/logger"
 )
 
+// @title Pikyon API
+// @version 1.0
+// @description Production backend service for Pikyon-v2.
+// @host localhost:8080
+// @BasePath /api/v1
 func main() {
-	// Read deployment environment port or default to 8080 for local dev
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "development"
+	}
+
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
+	logger.Setup(env, logLevel)
+	logger.Info("Starting Pikyon API service...", "env", env)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if os.Getenv("DATABASE_URL") != "" {
+		pool, err := db.Connect(ctx)
+		if err != nil {
+			logger.Error("Failed to initialize database connection", "error", err)
+		} else {
+			defer pool.Close()
+			logger.Info("Database connection pool initialized successfully")
+		}
+	} else {
+		logger.Warn("DATABASE_URL not set; skipping database initialization")
+	}
+
+	r := router.SetupRouter()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	// Initialize configured Chi HTTP router
-	r := router.NewRouter()
-
-	fmt.Printf("Pikyon API Server starting on port %s...\n", port)
-
-	// Start blocking HTTP server listener
-	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+	srv := &http.Server{
+		Addr:         ":" + port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
+
+	go func() {
+		logger.Info("HTTP server listening", "port", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("HTTP server failed to start", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	logger.Info("Shutting down server gracefully...")
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Error("Server forced to shutdown", "error", err)
+	}
+
+	logger.Info("Server exited cleanly")
 }

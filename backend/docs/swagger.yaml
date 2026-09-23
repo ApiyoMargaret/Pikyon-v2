@@ -1,0 +1,30 @@
+basePath: /api/v1
+definitions:
+  handlers.HealthResponse:
+    properties:
+      service:
+        type: string
+      status:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Production backend service for Pikyon-v2.
+  title: Pikyon API
+  version: "1.0"
+paths:
+  /health:
+    get:
+      description: Returns server health status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.HealthResponse'
+      summary: System Health Check
+      tags:
+      - Health
+swagger: "2.0"
