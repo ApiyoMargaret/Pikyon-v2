@@ -10,13 +10,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// Client wraps the PostgreSQL database connection pool.
-type Client struct {
-	*sql.DB
-}
+// Pool holds the global database connection pool.
+var Pool *sql.DB
 
-// Connect initializes and tests a PostgreSQL connection pool using environment variables.
-func Connect(ctx context.Context) (*Client, error) {
+// Connect initializes and returns the PostgreSQL database connection pool.
+func Connect(ctx context.Context) (*sql.DB, error) {
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		return nil, fmt.Errorf("DATABASE_URL environment variable is not set")
@@ -27,18 +25,23 @@ func Connect(ctx context.Context) (*Client, error) {
 		return nil, fmt.Errorf("failed to open database connection: %w", err)
 	}
 
-	// Configure connection pool parameters
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
 	db.SetConnMaxLifetime(15 * time.Minute)
 
-	// Verify database connection readiness with a timeout
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	if err := db.PingContext(pingCtx); err != nil {
-		return nil, fmt.Errorf("database ping failed: %w", err)
+		db.Close()
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return &Client{DB: db}, nil
+	Pool = db
+	return Pool, nil
+}
+
+// GetPool returns the current active connection pool instance.
+func GetPool() *sql.DB {
+	return Pool
 }
