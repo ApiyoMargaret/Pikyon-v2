@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 
 	"github.com/ApiyoMargaret/Pikyon-v2/backend/config"
@@ -27,12 +27,15 @@ import (
 // @BasePath /api/v1
 func main() {
 	if err := godotenv.Load(); err != nil {
-        log.Println("[Info] No .env file found, relying on system environment variables")
-    }
+		log.Println("[Info] No .env file found, relying on system environment variables")
+	}
+
 	// 1. Load Application Configuration
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load application configuration: %v", err)
+	}
+
 	env := os.Getenv("APP_ENV")
 	if env == "" {
 		env = "development"
@@ -76,7 +79,6 @@ func main() {
 
 	// 4. Start Background Session Worker
 	workerCtx, cancelWorker := context.WithCancel(context.Background())
-
 	worker := auth.NewWorker(authSvc, 1*time.Hour)
 	go worker.Start(workerCtx)
 
@@ -84,7 +86,7 @@ func main() {
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
 
-	// Explicitly configure trusted proxies (nil = direct connection without reverse proxy)
+	// Explicitly configure trusted proxies
 	if err := router.SetTrustedProxies(nil); err != nil {
 		log.Fatalf("Failed to set trusted proxies: %v", err)
 	}
@@ -102,35 +104,9 @@ func main() {
 	}
 
 	// 7. Setup HTTP Server
-	server := &http.Server{
+	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Port),
 		Handler:      router,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	if _, err := db.Connect(ctx); err != nil {
-		logger.Error("Fatal database connection error", "error", err)
-		os.Exit(1)
-	}
-
-	migrationsPath := os.Getenv("MIGRATIONS_PATH")
-	if migrationsPath == "" {
-		migrationsPath = "migrations"
-	}
-
-	if err := db.RunMigrations(migrationsPath); err != nil {
-		logger.Error("Fatal database migration error", "error", err)
-		os.Exit(1)
-	}
-	logger.Info("Database migrations applied successfully")
-
-	r := router.SetupRouter()
-
-	srv := &http.Server{
-		Addr:         ":8080",
-		Handler:      r,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -139,12 +115,8 @@ func main() {
 	// Run Server in a separate goroutine
 	go func() {
 		log.Printf("[Server] Starting Pikyon-v2 Backend on port %s (%s mode)", cfg.Port, cfg.Environment)
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("[Server] HTTP listener error: %v", err)
-		logger.Info("HTTP server listening", "port", 8080)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("HTTP server failed", "error", err)
-			os.Exit(1)
 		}
 	}()
 
@@ -162,15 +134,9 @@ func main() {
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancelShutdown()
 
-	if err := server.Shutdown(shutdownCtx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("[Server] HTTP server forced shutdown: %v", err)
 	}
 
-	// db.Close() will run cleanly via defer as main exits
 	log.Println("[Server] Application exited safely")
-	if pool := db.GetPool(); pool != nil {
-		_ = pool.Close()
-	}
-
-	logger.Info("Server stopped cleanly")
 }
