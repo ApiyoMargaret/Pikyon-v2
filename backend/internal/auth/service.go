@@ -21,37 +21,14 @@ var (
 )
 
 // Pre-computed dummy hash to enforce constant-time execution during failed logins.
-// Eliminates execution timing side-channel leaks for user enumeration attacks.
 const dummyBcryptHash = "$2a$10$7EqJtq986P2xXh73j9d6O.z7qG.8UvX5T2qJtq986P2xXh73j9d6O"
-
-// Session represents the persisted refresh token session model.
-type Session struct {
-	ID               string     `json:"id"`
-	UserID           string     `json:"user_id"`
-	RefreshToken     string     `json:"refresh_token"`
-	UserAgent        string     `json:"user_agent"`
-	ClientIP         string     `json:"client_ip"`
-	IsBlocked        bool       `json:"is_blocked"`
-	ExpiresAt        time.Time  `json:"expires_at"`
-	RotatedAt        *time.Time `json:"rotated_at,omitempty"`
-	ReplacementToken *string    `json:"replacement_token,omitempty"`
-}
-
-// User represents the core user account model.
-type User struct {
-	ID           string    `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	FullName     string    `json:"full_name"`
-	CreatedAt    time.Time `json:"created_at"`
-}
 
 // Config holds timing, duration, and secret parameters for auth operations.
 type Config struct {
 	JWTSecret            string
 	AccessTokenDuration  time.Duration
 	RefreshTokenDuration time.Duration
-	RotationGracePeriod  time.Duration // Default: 30s window for parallel SPA/mobile client refresh requests
+	RotationGracePeriod  time.Duration
 }
 
 // TokenPair represents generated access and refresh tokens.
@@ -65,19 +42,6 @@ type TokenPair struct {
 type Claims struct {
 	UserID string `json:"user_id"`
 	jwt.RegisteredClaims
-}
-
-// Repository handles database persistence operations for users and sessions.
-type Repository interface {
-	CreateUser(ctx context.Context, email, passwordHash, fullName string) (*User, error)
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
-	GetUserByID(ctx context.Context, id string) (*User, error)
-	CreateSession(ctx context.Context, session *Session) error
-	GetSessionByRefreshToken(ctx context.Context, refreshToken string) (*Session, error)
-	UpdateSessionRotation(ctx context.Context, session *Session) error
-	DeleteSession(ctx context.Context, refreshToken string) error
-	BlockUserSessions(ctx context.Context, userID string) error
-	DeleteExpiredSessions(ctx context.Context) (int64, error)
 }
 
 // Service defines application business logic for authentication.
@@ -134,8 +98,6 @@ func (s *service) Login(ctx context.Context, email, password, userAgent, clientI
 		return nil, nil, fmt.Errorf("fetch user: %w", err)
 	}
 
-	// Mitigate User Enumeration Timing Attack:
-	// Always execute bcrypt comparison against either the user's password hash or a dummy hash.
 	hashToCompare := dummyBcryptHash
 	if user != nil {
 		hashToCompare = user.PasswordHash
@@ -170,15 +132,12 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken, userAgent, cli
 
 	now := time.Now()
 
-	// Check natural session expiration
 	if now.After(session.ExpiresAt) {
 		_ = s.repo.DeleteSession(ctx, refreshToken)
 		return nil, ErrSessionNotFound
 	}
 
-	// Grace Period & Refresh Token Reuse Detection Logic
 	if session.RotatedAt != nil {
-		// Scenario A: Request arrives within grace window -> Return replacement token pair safely
 		if now.Sub(*session.RotatedAt) <= s.config.RotationGracePeriod {
 			if session.ReplacementToken != nil {
 				repSession, err := s.repo.GetSessionByRefreshToken(ctx, *session.ReplacementToken)
@@ -206,7 +165,6 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken, userAgent, cli
 			}
 		}
 
-		// Scenario B: Request arrives AFTER grace window -> Token reuse attack detected! Revoke all sessions.
 		_ = s.repo.BlockUserSessions(ctx, session.UserID)
 		return nil, ErrSessionBlocked
 	}
@@ -216,13 +174,11 @@ func (s *service) RefreshToken(ctx context.Context, refreshToken, userAgent, cli
 		return nil, ErrInvalidCredentials
 	}
 
-	// Generate a fresh token pair
 	tokenPair, err := s.generateAndSaveTokens(ctx, user.ID, userAgent, clientIP)
 	if err != nil {
 		return nil, fmt.Errorf("generate fresh tokens: %w", err)
 	}
 
-	// Mark current session as rotated instead of deleting immediately
 	session.RotatedAt = &now
 	session.ReplacementToken = &tokenPair.RefreshToken
 	if err := s.repo.UpdateSessionRotation(ctx, session); err != nil {
@@ -240,7 +196,7 @@ func (s *service) Logout(ctx context.Context, refreshToken string) error {
 }
 
 func (s *service) CleanExpiredSessions(ctx context.Context) (int64, error) {
-	count, err := s.repo.DeleteExpiredSessions(ctx)
+	count, err := s.repo.DeleteExpiredSessions(ctx, s.config.RotationGracePeriod)
 	if err != nil {
 		return 0, fmt.Errorf("cleanup expired sessions: %w", err)
 	}
@@ -271,7 +227,6 @@ func (s *service) generateAndSaveTokens(ctx context.Context, userID, userAgent, 
 	now := time.Now()
 	accessExpiresAt := now.Add(s.config.AccessTokenDuration)
 
-	// Stateless claims contain only the immutable UserID
 	claims := &Claims{
 		UserID: userID,
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -287,7 +242,6 @@ func (s *service) generateAndSaveTokens(ctx context.Context, userID, userAgent, 
 		return nil, fmt.Errorf("sign access token: %w", err)
 	}
 
-	// 16 random bytes hex-encoded produces a 32-character string, safely fitting VARCHAR(32) columns
 	refreshToken, err := generateRandomToken(16)
 	if err != nil {
 		return nil, fmt.Errorf("generate refresh token string: %w", err)
