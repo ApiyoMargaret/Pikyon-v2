@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 	"os"
@@ -20,6 +21,9 @@ import (
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+        log.Println("[Info] No .env file found, relying on system environment variables")
+    }
 	// 1. Load Application Configuration
 	cfg, err := config.Load()
 	if err != nil {
