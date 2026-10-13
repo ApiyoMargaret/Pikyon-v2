@@ -20,7 +20,13 @@ import (
 	"github.com/ApiyoMargaret/Pikyon-v2/backend/internal/auth"
 )
 
+// @title Pikyon API
+// @version 2.0
+// @description Production REST API for Pikyon backend services.
+// @host localhost:8080
+// @BasePath /api/v1
 func main() {
+<<<<<<< HEAD
 	if err := godotenv.Load(); err != nil {
         log.Println("[Info] No .env file found, relying on system environment variables")
     }
@@ -28,6 +34,11 @@ func main() {
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load application configuration: %v", err)
+=======
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = "development"
+>>>>>>> origin/dev
 	}
 
 	if cfg.Environment == "production" {
@@ -41,6 +52,7 @@ func main() {
 	}
 	defer db.Close()
 
+<<<<<<< HEAD
 	// Configure DB Connection Pooling Defaults
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
@@ -99,14 +111,49 @@ func main() {
 		Handler:      router,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
+=======
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if _, err := db.Connect(ctx); err != nil {
+		logger.Error("Fatal database connection error", "error", err)
+		os.Exit(1)
+	}
+
+	migrationsPath := os.Getenv("MIGRATIONS_PATH")
+	if migrationsPath == "" {
+		migrationsPath = "migrations"
+	}
+
+	if err := db.RunMigrations(migrationsPath); err != nil {
+		logger.Error("Fatal database migration error", "error", err)
+		os.Exit(1)
+	}
+	logger.Info("Database migrations applied successfully")
+
+	r := router.SetupRouter()
+
+	srv := &http.Server{
+		Addr:         ":8080",
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+>>>>>>> origin/dev
 		IdleTimeout:  60 * time.Second,
 	}
 
 	// Run Server in a separate goroutine
 	go func() {
+<<<<<<< HEAD
 		log.Printf("[Server] Starting Pikyon-v2 Backend on port %s (%s mode)", cfg.Port, cfg.Environment)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("[Server] HTTP listener error: %v", err)
+=======
+		logger.Info("HTTP server listening", "port", 8080)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Error("HTTP server failed", "error", err)
+			os.Exit(1)
+>>>>>>> origin/dev
 		}
 	}()
 
@@ -128,6 +175,14 @@ func main() {
 		log.Printf("[Server] HTTP server forced shutdown: %v", err)
 	}
 
+<<<<<<< HEAD
 	// db.Close() will run cleanly via defer as main exits
 	log.Println("[Server] Application exited safely")
+=======
+	if pool := db.GetPool(); pool != nil {
+		_ = pool.Close()
+	}
+
+	logger.Info("Server stopped cleanly")
+>>>>>>> origin/dev
 }
