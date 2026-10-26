@@ -11,6 +11,7 @@
 | Resend free tier: 3000 emails/month | Sharing/notification emails capped | Sufficient for MVP scale; monitor and upgrade if exceeded |
 | No custom domain (budget decision) | Refresh token forced into localStorage instead of httpOnly cookie — weaker XSS posture, mitigated by mandatory rotation | Documented tradeoff (07-security-plan.md §7.11); revisit when budget allows (~$3-15/year) |
 | Video compression not client-side (FFmpeg.wasm dropped) | Videos capped at 100MB raw upload until server-side worker ships | Server-side Go worker deferred to Sprint 2+ (04-system-architecture.md §4.6) |
+- Two database connection pools (restricted app role plus privileged role) must fit within the Supabase free-tier pooler connection limit (ADR-018).
 
 ## 12.2 Scope Constraints (explicitly out of MVP)
 Mobile native app, multi-language support, semantic/vector search, video editing, face recognition, Apple OAuth, Redis-backed rate limiting/caching, custom domain.

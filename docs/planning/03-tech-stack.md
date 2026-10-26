@@ -46,7 +46,8 @@ Pikyon System
 | golang-migrate | Schema migrations (up/down, isolated job, never in `main()`) |
 | swaggo/swag | Generates `swagger.json` from Go comments |
 | golang-jwt v5 | JWT handling |
-| bcrypt | Password/PIN/refresh-token hashing |
+| bcrypt | Password/PIN hashing (cost 12) |
+| SHA-256 (`crypto/sha256`, standard library) | Refresh-token hashing (ADR-019) |
 | go-playground/validator | Request DTO validation |
 | slog (stdlib) | Structured logging |
 | testify | Assertions/mocking |

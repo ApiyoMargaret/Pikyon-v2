@@ -29,6 +29,15 @@ users
 ```
 
 ## 5.3 Tables
+> **Authoritative schema: `backend/migrations/`.** The SQL below is the original design, kept for context. Where it differs from the migrations, the migrations win (see ADR-018 and ADR-019). Differences:
+> - RLS policies below use `auth.uid()` and are superseded: policies now read `pikyon.current_user_id()`, apply `TO pikyon_app`, and grants are explicit and column-level.
+> - `gen_random_uuid()` replaces `uuid_generate_v4()`; the share-token default uses two UUIDs instead of `gen_random_bytes()`.
+> - Child tables use composite FKs `(memory_id, user_id)` to `memories (id, user_id)`. `media_files` keeps `ON DELETE RESTRICT` deliberately: storage objects must be deleted before their rows.
+> - `users.email` and `shared_access.recipient_email` must be lowercase (CHECK).
+> - `sessions.refresh_token_hash` is a SHA-256 hex digest (CHECK: 64 hex chars) and `rotated_at` was added.
+> - `rate_limit_buckets` has deny-all RLS and an `expires_at` column.
+> - The "public token select" policy on `shared_access` was removed (it exposed every share); public links resolve on the privileged connection.
+> - `anon` and `authenticated` have no access to any table (migration 000012).
 
 ### users
 ```sql
@@ -63,7 +72,8 @@ CREATE POLICY users_update_own ON users FOR UPDATE USING (auth.uid() = id);
 CREATE TABLE sessions (
     id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id             UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    refresh_token_hash  TEXT NOT NULL UNIQUE,  -- bcrypt, raw token never stored
+       refresh_token_hash  TEXT NOT NULL UNIQUE,  -- SHA-256 hex, raw token never stored (ADR-019)
+    rotated_at          TIMESTAMPTZ,           -- when this token was exchanged for a new one (ADR-019)
     rotated_from        UUID REFERENCES sessions(id) ON DELETE SET NULL,
     -- ^ added: tracks refresh-token rotation chain for anomaly
     --   detection, required since refresh tokens now live in
@@ -272,7 +282,8 @@ CREATE TABLE rate_limit_buckets (
     count        INTEGER NOT NULL DEFAULT 1,
     window_start TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
--- No RLS: accessed only via service-role key from backend middleware
+-- RLS enabled with no policies (deny-all): only the privileged connection can access it (ADR-018).
+-- Also has expires_at TIMESTAMPTZ for cleanup of old rows.
 ```
 
 ## 5.4 Migration Execution Strategy
@@ -286,9 +297,13 @@ config.MaxConnLifetime   = 30 * time.Minute
 config.MaxConnIdleTime   = 5 * time.Minute
 config.HealthCheckPeriod = 1 * time.Minute
 ```
-
+With two database roles there are two pools (a restricted app pool and a privileged pool). Sizes are set in config so the total stays within the Supabase session-pooler limit (ADR-018).
 ## 5.6 Row Level Security Strategy
-Every table has RLS enabled. Pattern: SELECT/INSERT/UPDATE/DELETE scoped to `auth.uid()`. Service-role key (bypasses RLS) used only by backend cron jobs — never exposed to frontend. Cross-tenant access is verified with **mandatory automated tests**, not manual checks — see `09-testing-strategy.md`.
+Every table has RLS enabled (ADR-018). The backend uses two database roles:
+- `pikyon_app` (NOBYPASSRLS, least-privilege and column-level grants) for all user-scoped requests. Each request runs in a transaction that sets `app.current_user_id` (transaction-local, from the verified JWT). Policies read it through `pikyon.current_user_id()`; no context means no rows.
+- The owner/privileged role for migrations, login/register/refresh, cron jobs, public share-link resolution, creating notifications for other users, and AI job result updates.
+
+Supabase's Data API roles (`anon`, `authenticated`) have no grants on any table. Secrets (`password_hash`, `totp_secret`, `pin_hash`, `refresh_token_hash`) are not readable by `pikyon_app`. Cross-tenant access is verified by mandatory automated application tests (see `09-testing-strategy.md`) and by the database-level test `backend/migrations/tests/rls_isolation.sql`.
 
 ## 5.7 Scheduled Cron Jobs
 

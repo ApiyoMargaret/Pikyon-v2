@@ -109,7 +109,7 @@ File validation: MIME type checked server-side (not just
 
 ## 7.6 Layer 5 — Database Security
 
-RLS enabled on every table (see `05-database-design.md`). SSL required on all connections. Service-role key used only by backend cron jobs, never exposed to frontend. Sensitive data (passwords, refresh tokens, PINs, backup codes) stored as bcrypt hashes only; TOTP secrets AES-256 encrypted. No PII in logs, ever.
+RLS is enabled on every table (see `05-database-design.md` and ADR-018). The app connects as a restricted role (`pikyon_app`) that cannot bypass RLS; the privileged role is used only for migrations, login/refresh, cron jobs and public share-link resolution. Supabase's public Data API roles have no table access. SSL is required on all connections. The Supabase service key is used only by the backend and never exposed to the frontend. Passwords, PINs and backup codes are stored as bcrypt hashes (cost 12). Refresh tokens are 256-bit random values stored as SHA-256 hashes (ADR-019), rotated on every use with a 30-second grace window; reuse outside the window revokes all of the user's sessions. TOTP secrets are AES-256 encrypted. No PII in logs, ever.
 
 ## 7.7 Layer 6 — Media Security
 
@@ -177,7 +177,7 @@ Failed logins logged with IP. Suspicious activity (multiple failed logins from d
 □ No hardcoded secrets
 □ New endpoints require JWT where appropriate + rate limiting
 □ Input validation on all new fields
-□ RLS policy written for every new table
+□ RLS policy AND explicit least-privilege GRANT to pikyon_app written for every new table (no grants for anon/authenticated)
 □ Parameterized queries only, no raw SQL
 □ No new public storage buckets
 □ Generic error messages, no stack traces
