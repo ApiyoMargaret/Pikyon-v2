@@ -36,7 +36,7 @@ CREATE INDEX idx_memories_user_status ON memories(user_id, status);
 CREATE INDEX idx_memories_memory_date ON memories(memory_date DESC) WHERE status = 'active';
 CREATE INDEX idx_memories_permanent_delete ON memories(permanent_delete_at) WHERE status = 'trashed';
 CREATE INDEX idx_memories_search ON memories USING GIN(
-    to_tsvector('english', COALESCE(title, '') || ' ' || COALESCE(story, ''))
+    to_tsvector('english', COALESCE(title, '') || ' ' || COALESCE(story, '') || ' ' || COALESCE(location, ''))
 );
 
 ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
