@@ -130,3 +130,27 @@ func (h *Handler) Logout(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "successfully logged out"})
 }
+
+// GoogleOAuthCallback handles the Google OAuth2 callback exchange.
+func (h *Handler) GoogleOAuthCallback(c *gin.Context) {
+	exchangeCode := c.Query("code")
+	if exchangeCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing authorization code"})
+		return
+	}
+
+	tokens, user, err := h.service.GoogleOAuthCallback(c.Request.Context(), exchangeCode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Google OAuth callback failed: " + err.Error()})
+		return
+	}
+
+	resp := LoginResponse{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+		ExpiresAt:    tokens.ExpiresAt,
+		User:         user,
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
