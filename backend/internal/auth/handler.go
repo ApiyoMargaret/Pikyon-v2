@@ -150,27 +150,30 @@ type PinVerifyRequest struct {
 	PinCode   string `json:"pin_code" binding:"required,min=4,max=4"`
 }
 
-// PinVerifyResponse is the response for PIN verification.
-type PinVerifyResponse struct {
-	Success bool `json:"success"`
-	Verified bool `json:"verified"`
+// PinRemoveRequest is the payload for removing a memory PIN.
+type PinRemoveRequest struct {
+	MemoryID string `json:"memory_id" binding:"required,uuid"`
 }
 
-// PinVerify verifies a 4-digit PIN for a memory.
-func (h *Handler) PinVerify(c *gin.Context) {
-	var req PinVerifyRequest
+// PinRemoveResponse is the response for PIN removal.
+type PinRemoveResponse struct {
+	Success bool `json:"success"`
+}
+
+// PinRemove removes a 4-digit PIN from a memory.
+func (h *Handler) PinRemove(c *gin.Context) {
+	var req PinRemoveRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid PIN verification request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid PIN removal request"})
 		return
 	}
 
-	verified, err := h.service.PinVerify(c.Request.Context(), req.MemoryID, req.PinCode)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify PIN: " + err.Error()})
+	if err := h.service.PinRemove(c.Request.Context(), req.MemoryID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to remove PIN: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, PinVerifyResponse{Success: true, Verified: verified})
+	c.JSON(http.StatusOK, PinRemoveResponse{Success: true})
 }
 
 // GoogleOAuthCallback handles the Google OAuth2 callback exchange.
