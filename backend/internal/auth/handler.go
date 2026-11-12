@@ -19,8 +19,15 @@ func NewHandler(service Service) *Handler {
 func (h *Handler) RegisterRoutes(router *gin.RouterGroup, authMiddleware gin.HandlerFunc) {
 	auth := router.Group("/auth")
 	{
+		// Google OAuth
+		auth.GET("/google/start", h.GoogleOAuthStart)
+		auth.GET("/google/callback", h.GoogleOAuthCallback)
+
+		// Registration and login
 		auth.POST("/register", h.Register)
 		auth.POST("/login", h.Login)
+
+		// Token refresh
 		auth.POST("/refresh", h.RefreshToken)
 	}
 
