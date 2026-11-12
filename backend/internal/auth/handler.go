@@ -176,7 +176,21 @@ func (h *Handler) PinRemove(c *gin.Context) {
 	c.JSON(http.StatusOK, PinRemoveResponse{Success: true})
 }
 
-// GoogleOAuthCallback handles the Google OAuth2 callback exchange.
+func (h *Handler) GoogleOAuthStart(c *gin.Context) {
+	redirectURI := c.Query("redirect_uri")
+	if redirectURI == "" {
+		redirectURI = "/api/v1/auth/google/callback"
+	}
+
+	state, err := h.service.GoogleOAuthStart(c.Request.Context(), redirectURI)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to initiate Google OAuth: " + err.Error()})
+		return
+	}
+
+	c.Redirect(http.StatusTemporaryRedirect, state)
+}
+
 func (h *Handler) GoogleOAuthCallback(c *gin.Context) {
 	exchangeCode := c.Query("code")
 	if exchangeCode == "" {

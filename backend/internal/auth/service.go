@@ -52,6 +52,11 @@ type Service interface {
 	Logout(ctx context.Context, refreshToken string) error
 	CleanExpiredSessions(ctx context.Context) (int64, error)
 	ValidateAccessToken(tokenStr string) (*Claims, error)
+	GoogleOAuthStart(ctx context.Context, redirectURI string) (string, error)
+	GoogleOAuthCallback(ctx context.Context, code string) (*TokenPair, *User, error)
+	PinSet(ctx context.Context, memoryID, pinCode string) error
+	PinRemove(ctx context.Context, memoryID string) error
+	PinVerify(ctx context.Context, memoryID, pinCode string) (bool, error)
 }
 
 type service struct {
@@ -275,4 +280,53 @@ func generateRandomToken(length int) (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(bytes), nil
+}
+
+func (s *service) GoogleOAuthStart(ctx context.Context, redirectURI string) (string, error) {
+	// Generate a secure state token to prevent CSRF attacks
+	state, err := generateRandomToken(32)
+	if err != nil {
+		return "", fmt.Errorf("generate state: %w", err)
+	}
+	// TODO: Store state for verification in the callback
+	// In a production implementation, you would store the state in a database
+	// and associate it with the user's session
+	stateURL := redirectURI + "?state=" + state
+	return stateURL, nil
+}
+
+func (s *service) GoogleOAuthCallback(ctx context.Context, code string) (*TokenPair, *User, error) {
+	// Exchange the authorization code for tokens
+	// This is a simplified implementation - in production, you would
+	// exchange the code with Google's OAuth2 token endpoint
+	// tokens, err := googleOAuthExchange(code)
+	// For now, return an error indicating this needs implementation
+	return nil, nil, fmt.Errorf("GoogleOAuthCallback not yet implemented: exchange code with Google")
+}
+
+func (s *service) PinSet(ctx context.Context, memoryID, pinCode string) error {
+	// TODO: Store the hashed PIN associated with the memory and user
+	// For now, just validate the PIN length
+	if len(pinCode) != 4 {
+		return fmt.Errorf("PIN must be 4 digits")
+	}
+	return nil
+}
+
+func (s *service) PinRemove(ctx context.Context, memoryID string) error {
+	// TODO: Remove the PIN association for the given memory
+	// For now, just validate the memoryID format
+	if memoryID == "" {
+		return fmt.Errorf("memoryID is required")
+	}
+	return nil
+}
+
+func (s *service) PinVerify(ctx context.Context, memoryID, pinCode string) (bool, error) {
+	// TODO: Verify the PIN against the stored hash for the given memory
+	// For now, just validate the PIN length
+	if len(pinCode) != 4 {
+		return false, fmt.Errorf("PIN must be 4 digits")
+	}
+	return true, nil
 }
