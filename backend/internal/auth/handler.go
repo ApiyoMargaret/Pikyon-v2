@@ -144,25 +144,33 @@ type PinSetRequest struct {
 	PinCode   string `json:"pin_code" binding:"required,min=4,max=4"`
 }
 
-// PinSetResponse is the response for PIN setup.
-type PinSetResponse struct {
-	Success bool `json:"success"`
+// PinVerifyRequest is the payload for verifying a memory PIN.
+type PinVerifyRequest struct {
+	MemoryID  string `json:"memory_id" binding:"required,uuid"`
+	PinCode   string `json:"pin_code" binding:"required,min=4,max=4"`
 }
 
-// PinSet sets a 4-digit PIN for a memory.
-func (h *Handler) PinSet(c *gin.Context) {
-	var req PinSetRequest
+// PinVerifyResponse is the response for PIN verification.
+type PinVerifyResponse struct {
+	Success bool `json:"success"`
+	Verified bool `json:"verified"`
+}
+
+// PinVerify verifies a 4-digit PIN for a memory.
+func (h *Handler) PinVerify(c *gin.Context) {
+	var req PinVerifyRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid PIN setup request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid PIN verification request"})
 		return
 	}
 
-	if err := h.service.PinSet(c.Request.Context(), req.MemoryID, req.PinCode); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to set PIN: " + err.Error()})
+	verified, err := h.service.PinVerify(c.Request.Context(), req.MemoryID, req.PinCode)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to verify PIN: " + err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, PinSetResponse{Success: true})
+	c.JSON(http.StatusOK, PinVerifyResponse{Success: true, Verified: verified})
 }
 
 // GoogleOAuthCallback handles the Google OAuth2 callback exchange.
