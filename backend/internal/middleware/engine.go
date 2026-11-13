@@ -1,10 +1,19 @@
 package middleware
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 // Engine holds configuration for the HTTP router.
 type Engine struct {
 	CORSAllowedOrigins []string
+	RateLimiter        // embedded for access to rate limit methods
+}
+
+// RateLimiter defines the interface for rate limit checking.
+type RateLimiter interface {
+	Hit(ctx context.Context, key string, window time.Duration) (count int, retryAfter time.Duration, err error)
 }
 
 // RuleName returns the name of the rate limit rule.
