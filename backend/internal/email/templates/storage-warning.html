@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Storage Warning</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .container { background: #f4f4f4; padding: 20px; border-radius: 8px; border-left: 4px solid #e74c3c; }
+    .button { display: inline-block; padding: 10px 20px; background: #e74c3c; color: #fff; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+    .footer { font-size: 12px; color: #777; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Storage Warning</h2>
+    <p>Hello {{ .name }},</p>
+    <p>You have used {{ .percent }}% of your storage quota ({{ .used }} / {{ .quota }}).</p>
+    <p>To avoid data loss, please consider:</p>
+    <ul>
+      <li>Freeing up some memories</li>
+      <li>Upgrading your storage plan</li>
+    </ul>
+    {{ if .deleteOption }}
+    <a href="{{ .deleteOption }}" class="button">Free Up Space</a>
+    {{ end }}
+    <p>Thank you for being part of Pikyon!</p>
+    <div class="footer">
+      © {{ .currentYear }} Pikyon. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Pikyon</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .container { background: #f4f4f4; padding: 20px; border-radius: 8px; text-align: center; }
+    .button { display: inline-block; padding: 15px 30px; background: #2ecc71; color: #fff; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+    .footer { font-size: 12px; color: #777; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Welcome to Pikyon!</h2>
+    <h1>Hello {{ .name }}</h1>
+    <p>Welcome to the memory-sharing community. Start creating your first memory today!</p>
+    <a href="{{ .loginURL }}" class="button">Get Started</a>
+    <p>We're so excited to have you on board.</p>
+    <div class="footer">
+      © {{ .currentYear }} Pikyon. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>
