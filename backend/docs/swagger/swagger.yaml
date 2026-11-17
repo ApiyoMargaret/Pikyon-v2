@@ -1,0 +1,36 @@
+basePath: /api/v1
+definitions:
+  handlers.HealthResponse:
+    properties:
+      database:
+        type: string
+      service:
+        type: string
+      status:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Production REST API for Pikyon backend services.
+  title: Pikyon API
+  version: "2.0"
+paths:
+  /health:
+    get:
+      description: Returns server and live database connectivity status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.HealthResponse'
+        "503":
+          description: Service Unavailable
+          schema:
+            $ref: '#/definitions/handlers.HealthResponse'
+      summary: System Health Check
+      tags:
+      - Health
+swagger: "2.0"
